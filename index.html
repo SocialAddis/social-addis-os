@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Social Addis OS</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg: var(--tg-theme-bg-color, #ffffff);
+            --text: var(--tg-theme-text-color, #222222);
+            --hint: var(--tg-theme-hint-color, #999999);
+            --link: var(--tg-theme-link-color, #2481cc);
+            --secondary: var(--tg-theme-secondary-bg-color, #f4f4f5);
+            --button: var(--tg-theme-button-color, #2481cc);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 16px;
+            user-select: none;
+        }
+
+        .card {
+            background: var(--secondary);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        h2 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--hint);
+        }
+
+        /* Sales Progress Bar */
+        .stat-container { display: flex; align-items: baseline; gap: 8px; }
+        .stat { font-size: 28px; font-weight: 800; color: var(--button); }
+        .progress-container {
+            background: rgba(0,0,0,0.1);
+            border-radius: 10px;
+            height: 8px;
+            margin: 15px 0 5px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background: var(--button);
+            height: 100%;
+            width: 0%; /* Dynamic */
+            transition: width 0.5s ease-in-out;
+        }
+
+        /* Task Styling */
+        .task-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .task-item:last-child { border-bottom: none; }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-top: 5px;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        .status-red { background: #ff4d4f; box-shadow: 0 0 8px #ff4d4f; }
+        .status-green { background: #52c41a; }
+        
+        .task-info b { display: block; font-size: 16px; }
+        .task-info small { color: var(--hint); font-size: 13px; }
+
+        .refresh-text {
+            text-align: center;
+            font-size: 12px;
+            color: var(--hint);
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>🎟️ Daily Sales Revenue</h2>
+        <div class="stat-container">
+            <div class="stat" id="revenue">0 ETB</div>
+            <div style="color: var(--hint)">/ 50k</div>
+        </div>
+        <div class="progress-container">
+            <div id="progressBar" class="progress-bar"></div>
+        </div>
+        <p id="targetStatus" style="font-size: 13px; margin-top: 8px;"></p>
+    </div>
+
+    <div class="card">
+        <h2>⚠️ Critical Tasks</h2>
+        <div id="taskList">
+            <div style="text-align:center; padding: 20px; color: var(--hint);">Syncing with OS...</div>
+        </div>
+    </div>
+
+    <p class="refresh-text">Swipe down to refresh or use the button below</p>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        // 1. Setup Main Button for "Refresh"
+        tg.MainButton.text = "REFRESH DATA";
+        tg.MainButton.textColor = "#FFFFFF";
+        tg.MainButton.color = "#2481cc";
+        tg.MainButton.show();
+
+        tg.MainButton.onClick(() => {
+            tg.HapticFeedback.impactOccurred('medium');
+            refreshData();
+        });
+
+        // 2. Mock Data Function (Replace with fetch() to your backend/Google Sheets)
+        function refreshData() {
+            tg.MainButton.showProgress();
+            
+            // Simulating API Call
+            setTimeout(() => {
+                const data = {
+                    revenue: 38500,
+                    target: 50000,
+                    tasks: [
+                        { title: "Book Security", owner: "@PartnerA", status: "overdue", time: "12h Overdue" },
+                        { title: "Artist Deposit", owner: "@PartnerB", status: "track", time: "Due in 4h" },
+                        { title: "Sound Check", owner: "@TechLead", status: "track", time: "On Track" }
+                    ]
+                };
+
+                updateUI(data);
+                tg.MainButton.hideProgress();
+                tg.HapticFeedback.notificationOccurred('success');
+            }, 800);
+        }
+
+        // 3. Update UI Elements
+        function updateUI(data) {
+            // Update Revenue
+            document.getElementById('revenue').innerText = data.revenue.toLocaleString() + " ETB";
+            
+            // Update Progress Bar
+            const percent = (data.revenue / data.target) * 100;
+            document.getElementById('progressBar').style.width = percent + "%";
+            document.getElementById('targetStatus').innerText = `${Math.round(percent)}% of daily goal reached`;
+
+            // Update Tasks
+            const taskList = document.getElementById('taskList');
+            taskList.innerHTML = data.tasks.map(task => `
+                <div class="task-item">
+                    <div class="status-dot ${task.status === 'overdue' ? 'status-red' : 'status-green'}"></div>
+                    <div class="task-info">
+                        <b>${task.title}</b>
+                        <small>${task.owner} • ${task.time}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Initial Load
+        refreshData();
+
+    </script>
+</body>
+</html>
